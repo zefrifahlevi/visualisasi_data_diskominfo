@@ -25,7 +25,7 @@ def get_data_from_api(api_url):
 
 # --- Bagian Utama Aplikasi ---
 st.title("Visualisasi Data Penduduk Kabupaten Garut Berdasarkan Status Perkawinan, Kecamatan & Jenis Kelamin")
-st.markdown("Data bersumber dari [Garut Satu Data](https://satudata-api.garutkab.go.id)")
+st.markdown("Data bersumber dari [Garut Satu Data](https://satudata.garutkab.go.id/)")
 
 # URL API yang akan digunakan (sudah diperbarui untuk data status perkawinan)
 API_URL = "https://satudata-api.garutkab.go.id/api/datasets/jumlah-penduduk-kabupaten-garut-berdasarkan-status-kawin-4203/"
