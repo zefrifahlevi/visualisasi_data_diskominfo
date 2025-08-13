@@ -34,8 +34,8 @@ API_URLS = {
 
 
 # --- Bagian Utama Aplikasi ---
-st.title("Visualisasi Data Penduduk Kabupaten Garut")
-st.markdown("Data bersumber dari [Garut Satu Data](https://satudata-api.garutkab.go.id)")
+st.title("Visualisasi Data Kependudukan Kabupaten Garut")
+st.markdown("Data bersumber dari [Garut Satu Data](https://satudata.garutkab.go.id/)")
 
 # --- Mengambil semua data sekaligus ---
 data_aggr = {}
