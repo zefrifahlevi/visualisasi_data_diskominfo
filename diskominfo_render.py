@@ -34,8 +34,8 @@ API_URLS = {
 
 
 # --- Bagian Utama Aplikasi ---
-st.title("Visualisasi Data Kependudukan Kabupaten Garut")
-st.markdown("Data bersumber dari [Garut Satu Data](https://satudata.garutkab.go.id/)")
+st.title("Visualisasi Data Penduduk Kabupaten Garut")
+st.markdown("Data bersumber dari [Garut Satu Data](https://satudata-api.garutkab.go.id)")
 
 # --- Mengambil semua data sekaligus ---
 data_aggr = {}
@@ -211,12 +211,12 @@ with tabs[1]:
 
                     st.markdown("---")
                     
-                    # Ringkasan baru: Jumlah penduduk per kecamatan
-                    st.markdown("#### Jumlah Penduduk per Kecamatan")
-                    df_sum_kecamatan = df_filtered_kecamatan_jk.groupby(kecamatan_col)['jumlah'].sum().reset_index()
-                    for index, row in df_sum_kecamatan.iterrows():
-                        st.write(f"- Kecamatan {row[kecamatan_col]}: {row['jumlah']:,.0f} jiwa")
-                    st.markdown("---")
+                    # Menghapus bagian ini sesuai permintaan
+                    # st.markdown("#### Jumlah Penduduk per Kecamatan")
+                    # df_sum_kecamatan = df_filtered_kecamatan_jk.groupby(kecamatan_col)['jumlah'].sum().reset_index()
+                    # for index, row in df_sum_kecamatan.iterrows():
+                    #     st.write(f"- Kecamatan {row[kecamatan_col]}: {row['jumlah']:,.0f} jiwa")
+                    # st.markdown("---")
                     
                     col1, col2 = st.columns(2)
                     with col1:
@@ -316,8 +316,55 @@ with tabs[3]:
                 df_filtered_pekerjaan = df_pekerjaan[df_pekerjaan['tahun'] == selected_tahun]
 
                 if not df_filtered_pekerjaan.empty:
-                    if 'jenis_kelamin' in df_filtered_pekerjaan.columns.tolist():
-                        st.info("Visualisasi total penduduk berdasarkan jenis kelamin tidak tersedia untuk dataset ini.")
+                    # Mengganti tampilan total penduduk dengan desain card
+                    st.markdown("#### Status Pekerjaan Penduduk")
+                    
+                    # Mengelompokkan status pekerjaan
+                    # Menggunakan regex untuk mencari 'bekerja' dan 'tidak' dalam string
+                    bekerja = df_filtered_pekerjaan[~df_filtered_pekerjaan['jenis_pekerjaan'].str.contains('belum|tidak', case=False, na=False)]['jumlah'].sum()
+                    tidak_bekerja = df_filtered_pekerjaan[df_filtered_pekerjaan['jenis_pekerjaan'].str.contains('belum|tidak', case=False, na=False)]['jumlah'].sum()
+                    
+                    col_b, col_tb = st.columns(2)
+                    
+                    with col_b:
+                        st.markdown(
+                            f"""
+                            <div style="
+                                border-radius: 10px; 
+                                padding: 20px; 
+                                background-color: #f0f2f6; 
+                                display: flex; 
+                                flex-direction: column; 
+                                align-items: center; 
+                                text-align: center;">
+                                <div style="font-size: 32px; color: #32CD32;">💼</div>
+                                <div style="font-size: 24px; font-weight: bold; margin-top: 10px; color: #32CD32;">{bekerja:,.0f}</div>
+                                <div style="font-size: 14px; color: #5A5A5A;">Bekerja</div>
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+                        
+                    with col_tb:
+                        st.markdown(
+                            f"""
+                            <div style="
+                                border-radius: 10px; 
+                                padding: 20px; 
+                                background-color: #f0f2f6; 
+                                display: flex; 
+                                flex-direction: column; 
+                                align-items: center; 
+                                text-align: center;">
+                                <div style="font-size: 32px; color: #FF4500;">🚫</div>
+                                <div style="font-size: 24px; font-weight: bold; margin-top: 10px; color: #FF4500;">{tidak_bekerja:,.0f}</div>
+                                <div style="font-size: 14px; color: #5A5A5A;">Belum/Tidak Bekerja</div>
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+                    
+                    st.markdown("---")
 
                     # Ringkasan baru: Jumlah penduduk per pekerjaan
                     st.markdown("#### Jumlah Penduduk Berdasarkan Pekerjaan")
