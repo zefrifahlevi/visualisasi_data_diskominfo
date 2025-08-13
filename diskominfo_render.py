@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.express as px
 import datetime
 import json
+import base64
 
 # --- Konfigurasi Halaman ---
 st.set_page_config(page_title="Visualisasi Data Statistik Garut", layout="wide")
@@ -30,6 +31,7 @@ API_URLS = {
     "Perkawinan": "https://satudata-api.garutkab.go.id/api/datasets/jumlah-penduduk-kabupaten-garut-berdasarkan-status-kawin-4203/",
     "Golongan Darah": "https://satudata-api.garutkab.go.id/api/datasets/jumlah-penduduk-kabupaten-garut-berdasarkan-golongan-darah-4167/",
 }
+
 
 # --- Bagian Utama Aplikasi ---
 st.title("Visualisasi Data Penduduk Kabupaten Garut")
@@ -137,12 +139,76 @@ with tabs[1]:
                 df_filtered_kecamatan_jk = df_kecamatan_jk[df_kecamatan_jk['tahun'] == selected_tahun]
                 
                 if not df_filtered_kecamatan_jk.empty:
-                    # Tampilkan total populasi laki-laki dan perempuan dalam bentuk teks
+                    # Mengganti tampilan total penduduk dengan desain card
                     st.markdown("#### Total Jumlah Penduduk Berdasarkan Jenis Kelamin")
                     df_total_jk = df_filtered_kecamatan_jk.groupby('jenis_kelamin')['jumlah'].sum().reset_index()
-                    for index, row in df_total_jk.iterrows():
-                        st.write(f"- {row['jenis_kelamin']}: {row['jumlah']:,.0f} jiwa")
-                    st.write(f"**Total Keseluruhan:** {df_total_jk['jumlah'].sum():,.0f} jiwa")
+                    
+                    # Mendapatkan jumlah laki-laki dan perempuan dengan penanganan label yang fleksibel
+                    laki_laki = df_total_jk[df_total_jk['jenis_kelamin'].isin(['Laki-Laki', 'L'])]['jumlah'].sum()
+                    perempuan = df_total_jk[df_total_jk['jenis_kelamin'].isin(['Perempuan', 'P'])]['jumlah'].sum()
+                    
+                    # Mendapatkan total jumlah
+                    total_penduduk = laki_laki + perempuan
+                    
+                    col_l, col_p, col_t = st.columns(3)
+                    
+                    with col_l:
+                        st.markdown(
+                            f"""
+                            <div style="
+                                border-radius: 10px; 
+                                padding: 20px; 
+                                background-color: #f0f2f6; 
+                                display: flex; 
+                                flex-direction: column; 
+                                align-items: center; 
+                                text-align: center;">
+                                <div style="font-size: 32px; color: #007BFF;">👨</div>
+                                <div style="font-size: 24px; font-weight: bold; margin-top: 10px; color: #007BFF;">{laki_laki:,.0f}</div>
+                                <div style="font-size: 14px; color: #5A5A5A;">Laki-laki</div>
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+                        
+                    with col_p:
+                        st.markdown(
+                            f"""
+                            <div style="
+                                border-radius: 10px; 
+                                padding: 20px; 
+                                background-color: #f0f2f6; 
+                                display: flex; 
+                                flex-direction: column; 
+                                align-items: center; 
+                                text-align: center;">
+                                <div style="font-size: 32px; color: #FF69B4;">👩</div>
+                                <div style="font-size: 24px; font-weight: bold; margin-top: 10px; color: #FF69B4;">{perempuan:,.0f}</div>
+                                <div style="font-size: 14px; color: #5A5A5A;">Perempuan</div>
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+                    
+                    with col_t:
+                        st.markdown(
+                            f"""
+                            <div style="
+                                border-radius: 10px; 
+                                padding: 20px; 
+                                background-color: #f0f2f6; 
+                                display: flex; 
+                                flex-direction: column; 
+                                align-items: center; 
+                                text-align: center;">
+                                <div style="font-size: 32px; color: #5A5A5A;">👥</div>
+                                <div style="font-size: 24px; font-weight: bold; margin-top: 10px; color: #5A5A5A;">{total_penduduk:,.0f}</div>
+                                <div style="font-size: 14px; color: #5A5A5A;">Total Keseluruhan</div>
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+
                     st.markdown("---")
                     
                     # Ringkasan baru: Jumlah penduduk per kecamatan
@@ -251,7 +317,7 @@ with tabs[3]:
 
                 if not df_filtered_pekerjaan.empty:
                     if 'jenis_kelamin' in df_filtered_pekerjaan.columns.tolist():
-                         st.info("Visualisasi total penduduk berdasarkan jenis kelamin tidak tersedia untuk dataset ini.")
+                        st.info("Visualisasi total penduduk berdasarkan jenis kelamin tidak tersedia untuk dataset ini.")
 
                     # Ringkasan baru: Jumlah penduduk per pekerjaan
                     st.markdown("#### Jumlah Penduduk Berdasarkan Pekerjaan")
