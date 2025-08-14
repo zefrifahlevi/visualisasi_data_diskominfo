@@ -32,10 +32,18 @@ API_URLS = {
     "Golongan Darah": "https://satudata-api.garutkab.go.id/api/datasets/jumlah-penduduk-kabupaten-garut-berdasarkan-golongan-darah-4167/",
 }
 
+# Fungsi untuk membuat SVG icon
+def create_svg_icon(path, fill_color, size=24):
+    """Membuat SVG icon dari path dan warna yang diberikan."""
+    return f"""
+    <svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 24 24" fill="{fill_color}">
+        <path d="{path}"/>
+    </svg>
+    """
 
 # --- Bagian Utama Aplikasi ---
-st.title("Visualisasi Data Penduduk Kabupaten Garut")
-st.markdown("Data bersumber dari [Garut Satu Data](https://satudata-api.garutkab.go.id)")
+st.title("Visualisasi Data Kependudukan Kabupaten Garut")
+st.markdown("Data bersumber dari [Garut Satu Data](https://satudata.garutkab.go.id/)")
 
 # --- Mengambil semua data sekaligus ---
 data_aggr = {}
@@ -79,11 +87,45 @@ with tabs[0]:
                 df_filtered_agama = df_agama[df_agama['tahun'] == selected_tahun]
 
                 if not df_filtered_agama.empty:
-                    # Ringkasan baru: Jumlah penduduk per agama
+                    # Menyiapkan emoji untuk setiap agama
+                    agama_emojis = {
+                        'ISLAM': '🕌',
+                        'KRISTEN': '✝️',
+                        'KATHOLIK': '⛪',
+                        'HINDU': '🕉️',
+                        'BUDHA': '☸️',
+                        'KHONGHUCU': '�',
+                        'KEPERCAYAAN': '✨'
+                    }
+
+                    # Tampilan kartu untuk jumlah penduduk per agama
                     st.markdown("#### Jumlah Penduduk per Agama")
                     df_sum_agama = df_filtered_agama.groupby('agama')['jumlah'].sum().reset_index()
+                    
+                    # Membuat kolom untuk setiap kartu
+                    cols = st.columns(len(df_sum_agama))
+                    
+                    # Mengisi setiap kolom dengan kartu
                     for index, row in df_sum_agama.iterrows():
-                        st.write(f"- Agama {row['agama']}: {row['jumlah']:,.0f} jiwa")
+                        with cols[index]:
+                            agama_emoji = agama_emojis.get(row['agama'].upper(), '❓')
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    border-radius: 10px; 
+                                    padding: 20px; 
+                                    background-color: #f0f2f6; 
+                                    display: flex; 
+                                    flex-direction: column; 
+                                    align-items: center; 
+                                    text-align: center;">
+                                    <div style="font-size: 32px; color: #5A5A5A;">{agama_emoji}</div>
+                                    <div style="font-size: 24px; font-weight: bold; color: #5A5A5A;">{row['jumlah']:,.0f}</div>
+                                    <div style="font-size: 14px; color: #5A5A5A;">{row['agama']}</div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
                     st.markdown("---")
                     
                     col1, col2 = st.columns(2)
@@ -263,13 +305,44 @@ with tabs[2]:
                 df_filtered_kawin = df_kawin[df_kawin['tahun'] == selected_tahun]
 
                 if not df_filtered_kawin.empty:
-                    # Ringkasan baru: Jumlah penduduk per status perkawinan
+                    # Menyiapkan emoji untuk setiap status perkawinan
+                    kawin_emojis = {
+                        'KAWIN': '💍',
+                        'BELUM KAWIN': '👤',
+                        'CERAI HIDUP': '💔',
+                        'CERAI MATI': '🕊️'
+                    }
+
+                    # Tampilan kartu untuk jumlah penduduk per status perkawinan
                     st.markdown("#### Jumlah Penduduk Berdasarkan Status Perkawinan")
                     df_sum_kawin = df_filtered_kawin.groupby('status_kawin')['jumlah'].sum().reset_index()
-                    for index, row in df_sum_kawin.iterrows():
-                        st.write(f"- {row['status_kawin']}: {row['jumlah']:,.0f} jiwa")
-                    st.markdown("---")
                     
+                    # Membuat kolom untuk setiap kartu
+                    cols = st.columns(len(df_sum_kawin))
+                    
+                    # Mengisi setiap kolom dengan kartu
+                    for index, row in df_sum_kawin.iterrows():
+                        with cols[index]:
+                            kawin_emoji = kawin_emojis.get(row['status_kawin'].upper(), '❓')
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    border-radius: 10px; 
+                                    padding: 20px; 
+                                    background-color: #f0f2f6; 
+                                    display: flex; 
+                                    flex-direction: column; 
+                                    align-items: center; 
+                                    text-align: center;">
+                                    <div style="font-size: 32px; color: #5A5A5A;">{kawin_emoji}</div>
+                                    <div style="font-size: 24px; font-weight: bold; color: #5A5A5A;">{row['jumlah']:,.0f}</div>
+                                    <div style="font-size: 14px; color: #5A5A5A;">{row['status_kawin']}</div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                    st.markdown("---")
+
                     col1, col2 = st.columns(2)
                     with col1:
                         fig_bar_status_kawin = px.bar(df_sum_kawin, x='status_kawin', y='jumlah', title=f'Jumlah Penduduk per Status Perkawinan Tahun {selected_tahun}', labels={'status_kawin': 'Status Perkawinan', 'jumlah': 'Jumlah Penduduk (jiwa)'}, color='status_kawin')
@@ -366,24 +439,23 @@ with tabs[3]:
                     
                     st.markdown("---")
 
-                    # Ringkasan baru: Jumlah penduduk per pekerjaan
-                    st.markdown("#### Jumlah Penduduk Berdasarkan Pekerjaan")
-                    df_sum_pekerjaan = df_filtered_pekerjaan.groupby('jenis_pekerjaan')['jumlah'].sum().reset_index()
-                    for index, row in df_sum_pekerjaan.iterrows():
-                        st.write(f"- {row['jenis_pekerjaan']}: {row['jumlah']:,.0f} jiwa")
-                    st.markdown("---")
-                    
                     col1, col2 = st.columns(2)
                     with col1:
-                        fig_bar_pekerjaan = px.bar(df_sum_pekerjaan, x='jenis_pekerjaan', y='jumlah', title=f'Jumlah Penduduk per Pekerjaan Tahun {selected_tahun}', labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'}, color='jenis_pekerjaan')
+                        fig_bar_pekerjaan = px.bar(df_filtered_pekerjaan, x='jenis_pekerjaan', y='jumlah', title=f'Jumlah Penduduk per Pekerjaan Tahun {selected_tahun}', labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'}, color='jenis_pekerjaan')
                         fig_bar_pekerjaan.update_layout(xaxis={'categoryorder':'total descending'}, yaxis_tickformat=".2s")
                         st.plotly_chart(fig_bar_pekerjaan, use_container_width=True)
                     with col2:
-                        fig_pie_pekerjaan = px.pie(df_sum_pekerjaan, values='jumlah', names='jenis_pekerjaan', title=f'Proporsi Penduduk Berdasarkan Pekerjaan Tahun {selected_tahun}', labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'})
+                        fig_pie_pekerjaan = px.pie(df_filtered_pekerjaan, values='jumlah', names='jenis_pekerjaan', title=f'Proporsi Penduduk Berdasarkan Pekerjaan Tahun {selected_tahun}', labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'})
                         fig_pie_pekerjaan.update_traces(textposition='inside', textinfo='percent+label')
                         st.plotly_chart(fig_pie_pekerjaan, use_container_width=True)
 
                     st.markdown("---")
+                    st.markdown("### Jumlah Penduduk Berdasarkan Pekerjaan")
+                    df_sum_pekerjaan = df_filtered_pekerjaan.groupby('jenis_pekerjaan')['jumlah'].sum().reset_index()
+                    for index, row in df_sum_pekerjaan.iterrows():
+                        st.write(f"- {row['jenis_pekerjaan']}: {row['jumlah']:,.0f} jiwa")
+                    st.markdown("---")
+
                     st.markdown("### Tren Jumlah Penduduk Berdasarkan Pekerjaan dari Tahun ke Tahun")
                     df_grouped_pekerjaan = df_pekerjaan.groupby(['tahun', 'jenis_pekerjaan']).agg({'jumlah': 'sum'}).reset_index()
                     fig_line_pekerjaan = px.line(df_grouped_pekerjaan, x='tahun', y='jumlah', color='jenis_pekerjaan', markers=True, title='Tren Jumlah Penduduk Berdasarkan Pekerjaan', labels={'tahun': 'Tahun', 'jumlah': 'Jumlah Penduduk (jiwa)', 'jenis_pekerjaan': 'Pekerjaan'})
@@ -416,11 +488,51 @@ with tabs[4]:
                 df_filtered_goldarah = df_goldarah[df_goldarah['tahun'] == selected_tahun]
 
                 if not df_filtered_goldarah.empty:
-                    # Ringkasan baru: Jumlah penduduk per golongan darah
+                    # Menyiapkan emoji untuk setiap golongan darah
+                    goldarah_emojis = {
+                        'A': '🩸',
+                        'A+': '🩸',
+                        'A-': '🩸',
+                        'B': '💉',
+                        'B+': '💉',
+                        'B-': '💉',
+                        'AB': '🧬',
+                        'AB+': '🧬',
+                        'AB-': '🧬',
+                        'O': '⭕',
+                        'O+': '⭕',
+                        'O-': '⭕',
+                        'TIDAK TAHU': '❓'
+                    }
+                    
+                    # Tampilan kartu untuk jumlah penduduk per golongan darah
                     st.markdown("#### Jumlah Penduduk Berdasarkan Golongan Darah")
                     df_sum_goldarah = df_filtered_goldarah.groupby('gol_drh')['jumlah'].sum().reset_index()
+                    
+                    # Membuat kolom untuk setiap kartu
+                    cols = st.columns(len(df_sum_goldarah))
+                    
+                    # Mengisi setiap kolom dengan kartu
                     for index, row in df_sum_goldarah.iterrows():
-                        st.write(f"- Golongan Darah {row['gol_drh']}: {row['jumlah']:,.0f} jiwa")
+                        with cols[index]:
+                            gol_darah_emoji = goldarah_emojis.get(row['gol_drh'].upper(), '❓')
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    border-radius: 10px; 
+                                    padding: 20px; 
+                                    background-color: #f0f2f6; 
+                                    display: flex; 
+                                    flex-direction: column; 
+                                    align-items: center; 
+                                    text-align: center;">
+                                    <div style="font-size: 32px; color: #5A5A5A;">{gol_darah_emoji}</div>
+                                    <div style="font-size: 24px; font-weight: bold; color: #5A5A5A;">{row['jumlah']:,.0f}</div>
+                                    <div style="font-size: 14px; color: #5A5A5A;">{row['gol_drh']}</div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
                     st.markdown("---")
 
                     col1, col2 = st.columns(2)
