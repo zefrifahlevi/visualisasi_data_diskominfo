@@ -74,7 +74,10 @@ with tabs[0]:
     df_agama = data_aggr.get("Agama")
     if df_agama is not None:
         try:
-            required_cols = ['tahun', 'agama', 'jumlah', 'jenis_kelamin', 'semester']
+            # Periksa keberadaan kolom 'kecamatan' atau 'nama_kecamatan'
+            kecamatan_col = 'nama_kecamatan' if 'nama_kecamatan' in df_agama.columns else 'kecamatan'
+            required_cols = ['tahun', 'agama', 'jumlah', 'jenis_kelamin', 'semester', kecamatan_col]
+            
             if not all(col in df_agama.columns.tolist() for col in required_cols):
                 st.error("Kolom yang dibutuhkan untuk visualisasi Agama tidak ditemukan.")
             else:
@@ -109,30 +112,35 @@ with tabs[0]:
                     st.markdown("#### Jumlah Penduduk per Agama")
                     df_sum_agama = df_filtered_agama.groupby('agama')['jumlah'].sum().reset_index()
                     
-                    # Membuat kolom untuk setiap kartu
-                    cols = st.columns(len(df_sum_agama))
+                    # Menggunakan st.columns untuk membuat tata letak yang responsif
+                    num_cards = len(df_sum_agama)
+                    num_cols_per_row = 6
                     
-                    # Mengisi setiap kolom dengan kartu
-                    for index, row in df_sum_agama.iterrows():
-                        with cols[index]:
-                            agama_emoji = agama_emojis.get(row['agama'].upper(), '❓')
-                            st.markdown(
-                                f"""
-                                <div style="
-                                    border-radius: 10px; 
-                                    padding: 20px; 
-                                    background-color: #f0f2f6; 
-                                    display: flex; 
-                                    flex-direction: column; 
-                                    align-items: center; 
-                                    text-align: center;">
-                                    <div style="font-size: 32px; color: #5A5A5A;">{agama_emoji}</div>
-                                    <div style="font-size: 24px; font-weight: bold; color: #5A5A5A;">{row['jumlah']:,.0f}</div>
-                                    <div style="font-size: 14px; color: #5A5A5A;">{row['agama']}</div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
+                    for i in range(0, num_cards, num_cols_per_row):
+                        cols = st.columns(num_cols_per_row, gap="small")
+                        for j in range(num_cols_per_row):
+                            if i + j < num_cards:
+                                row = df_sum_agama.iloc[i+j]
+                                with cols[j]:
+                                    agama_emoji = agama_emojis.get(row['agama'].upper(), '❓')
+                                    st.markdown(
+                                        f"""
+                                        <div style="
+                                            border-radius: 10px; 
+                                            padding: 20px; 
+                                            background-color: #f0f2f6; 
+                                            display: flex; 
+                                            flex-direction: column; 
+                                            align-items: center; 
+                                            text-align: center;
+                                            margin: 5px;">
+                                            <div style="font-size: 32px; color: #5A5A5A;">{agama_emoji}</div>
+                                            <div style="font-size: 24px; font-weight: bold; color: #5A5A5A;">{row['jumlah']:,.0f}</div>
+                                            <div style="font-size: 14px; color: #5A5A5A;">{row['agama']}</div>
+                                        </div>
+                                        """,
+                                        unsafe_allow_html=True
+                                    )
                     st.markdown("---")
                     
                     col1, col2 = st.columns(2)
@@ -146,6 +154,18 @@ with tabs[0]:
                         st.plotly_chart(fig_pie_agama, use_container_width=True)
 
                     st.markdown("---")
+                    
+                    # Cek jika kolom 'kecamatan' tersedia sebelum membuat grafik
+                    if kecamatan_col in df_filtered_agama.columns.tolist():
+                        st.markdown("### Sebaran Agama per Kecamatan")
+                        df_grouped_kecamatan_agama = df_filtered_agama.groupby([kecamatan_col, 'agama']).agg({'jumlah': 'sum'}).reset_index()
+                        fig_bar_kecamatan_agama = px.bar(df_grouped_kecamatan_agama, x=kecamatan_col, y='jumlah', color='agama', barmode='group', title=f'Sebaran Agama per Kecamatan Tahun {selected_tahun} Semester {selected_semester}', labels={kecamatan_col: 'Kecamatan', 'jumlah': 'Jumlah Penduduk (jiwa)', 'agama': 'Agama'})
+                        fig_bar_kecamatan_agama.update_layout(xaxis={'categoryorder':'total descending'}, yaxis_tickformat=".2s")
+                        st.plotly_chart(fig_bar_kecamatan_agama, use_container_width=True)
+                        st.markdown("---")
+                    else:
+                        st.info("Data kecamatan tidak tersedia untuk visualisasi ini.")
+
                     st.markdown("### Tren Jumlah Penduduk Berdasarkan Agama dari Tahun ke Tahun")
                     df_grouped_agama = df_agama.groupby(['tahun', 'agama']).agg({'jumlah': 'sum'}).reset_index()
                     fig_line_agama = px.line(df_grouped_agama, x='tahun', y='jumlah', color='agama', markers=True, title='Tren Jumlah Penduduk Berdasarkan Agama', labels={'tahun': 'Tahun', 'jumlah': 'Jumlah Penduduk (jiwa)', 'agama': 'Agama'})
@@ -300,6 +320,10 @@ with tabs[2]:
     if df_kawin is not None:
         try:
             required_cols = ['tahun', 'status_kawin', 'jumlah', 'jenis_kelamin', 'semester']
+            
+            # Cek apakah kolom 'kecamatan' ada di DataFrame
+            has_kecamatan_col = 'kecamatan' in df_kawin.columns.tolist()
+
             if not all(col in df_kawin.columns.tolist() for col in required_cols):
                 st.error("Kolom yang dibutuhkan untuk visualisasi Status Perkawinan tidak ditemukan.")
             else:
@@ -331,30 +355,36 @@ with tabs[2]:
                     st.markdown("#### Jumlah Penduduk Berdasarkan Status Perkawinan")
                     df_sum_kawin = df_filtered_kawin.groupby('status_kawin')['jumlah'].sum().reset_index()
                     
-                    # Membuat kolom untuk setiap kartu
-                    cols = st.columns(len(df_sum_kawin))
+                    # Menggunakan st.columns untuk membuat tata letak yang responsif
+                    num_cards = len(df_sum_kawin)
+                    num_cols_per_row = 4  # Tampilkan 4 kolom per baris
                     
-                    # Mengisi setiap kolom dengan kartu
-                    for index, row in df_sum_kawin.iterrows():
-                        with cols[index]:
-                            kawin_emoji = kawin_emojis.get(row['status_kawin'].upper(), '❓')
-                            st.markdown(
-                                f"""
-                                <div style="
-                                    border-radius: 10px; 
-                                    padding: 20px; 
-                                    background-color: #f0f2f6; 
-                                    display: flex; 
-                                    flex-direction: column; 
-                                    align-items: center; 
-                                    text-align: center;">
-                                    <div style="font-size: 32px; color: #5A5A5A;">{kawin_emoji}</div>
-                                    <div style="font-size: 24px; font-weight: bold; color: #5A5A5A;">{row['jumlah']:,.0f}</div>
-                                    <div style="font-size: 14px; color: #5A5A5A;">{row['status_kawin']}</div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
+                    for i in range(0, num_cards, num_cols_per_row):
+                        cols = st.columns(num_cols_per_row, gap="small")
+                        for j in range(num_cols_per_row):
+                            if i + j < num_cards:
+                                row = df_sum_kawin.iloc[i+j]
+                                with cols[j]:
+                                    kawin_emoji = kawin_emojis.get(row['status_kawin'].upper(), '❓')
+                                    st.markdown(
+                                        f"""
+                                        <div style="
+                                            border-radius: 10px; 
+                                            padding: 20px; 
+                                            background-color: #f0f2f6; 
+                                            display: flex; 
+                                            flex-direction: column; 
+                                            align-items: center; 
+                                            text-align: center;
+                                            margin: 5px;">
+                                            <div style="font-size: 32px; color: #5A5A5A;">{kawin_emoji}</div>
+                                            <div style="font-size: 24px; font-weight: bold; color: #5A5A5A;">{row['jumlah']:,.0f}</div>
+                                            <div style="font-size: 14px; color: #5A5A5A;">{row['status_kawin']}</div>
+                                        </div>
+                                        """,
+                                        unsafe_allow_html=True
+                                    )
+                    
                     st.markdown("---")
 
                     col1, col2 = st.columns(2)
@@ -368,6 +398,18 @@ with tabs[2]:
                         st.plotly_chart(fig_pie_status_kawin, use_container_width=True)
 
                     st.markdown("---")
+                    
+                    # Cek jika kolom 'kecamatan' tersedia sebelum membuat grafik
+                    if has_kecamatan_col:
+                        st.markdown("### Sebaran Status Perkawinan per Kecamatan")
+                        df_grouped_kecamatan_kawin = df_filtered_kawin.groupby(['kecamatan', 'status_kawin']).agg({'jumlah': 'sum'}).reset_index()
+                        fig_bar_kecamatan_kawin = px.bar(df_grouped_kecamatan_kawin, x='kecamatan', y='jumlah', color='status_kawin', barmode='group', title=f'Sebaran Status Perkawinan per Kecamatan Tahun {selected_tahun} Semester {selected_semester}', labels={'kecamatan': 'Kecamatan', 'jumlah': 'Jumlah Penduduk (jiwa)', 'status_kawin': 'Status Perkawinan'})
+                        fig_bar_kecamatan_kawin.update_layout(xaxis={'categoryorder':'total descending'}, yaxis_tickformat=".2s")
+                        st.plotly_chart(fig_bar_kecamatan_kawin, use_container_width=True)
+                        st.markdown("---")
+                    else:
+                        st.info("Data kecamatan tidak tersedia untuk visualisasi ini.")
+
                     st.markdown("### Tren Jumlah Penduduk Berdasarkan Status Perkawinan dari Tahun ke Tahun")
                     df_grouped_status_kawin = df_kawin.groupby(['tahun', 'status_kawin']).agg({'jumlah': 'sum'}).reset_index()
                     fig_line_status_kawin = px.line(df_grouped_status_kawin, x='tahun', y='jumlah', color='status_kawin', markers=True, title='Tren Jumlah Penduduk Berdasarkan Status Perkawinan', labels={'tahun': 'Tahun', 'jumlah': 'Jumlah Penduduk (jiwa)', 'status_kawin': 'Status Perkawinan'})
@@ -383,7 +425,7 @@ with tabs[2]:
 # ---
 # Tab: Berdasarkan Pekerjaan
 with tabs[3]:
-    st.markdown("### Jumlah Penduduk Berdasarkan Pekerjaan")
+    st.markdown("### Jumlah Penduduk Usia Produktif Berdasarkan Pekerjaan")
     df_pekerjaan = data_aggr.get("Pekerjaan")
     if df_pekerjaan is not None:
         try:
@@ -391,8 +433,6 @@ with tabs[3]:
             
             # Cek apakah kolom 'semester' ada di DataFrame
             has_semester_col = 'semester' in df_pekerjaan.columns.tolist()
-            if has_semester_col:
-                required_cols.append('semester')
             
             if not all(col in df_pekerjaan.columns.tolist() for col in required_cols):
                 st.error("Kolom yang dibutuhkan untuk visualisasi Pekerjaan tidak ditemukan.")
@@ -464,19 +504,14 @@ with tabs[3]:
 
                     col1, col2 = st.columns(2)
                     with col1:
-                        fig_bar_pekerjaan = px.bar(df_filtered_pekerjaan, x='jenis_pekerjaan', y='jumlah', title=f'Jumlah Penduduk per Pekerjaan Tahun {selected_tahun}' + (f' Semester {selected_semester}' if has_semester_col else ''), labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'}, color='jenis_pekerjaan')
+                        fig_bar_pekerjaan = px.bar(df_filtered_pekerjaan, x='jenis_pekerjaan', y='jumlah', title=f'Jumlah Penduduk per Pekerjaan Tahun {selected_tahun}' + (f' Semester {has_semester_col and selected_semester or ""}' if has_semester_col else ''), labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'}, color='jenis_pekerjaan')
                         fig_bar_pekerjaan.update_layout(xaxis={'categoryorder':'total descending'}, yaxis_tickformat=".2s")
                         st.plotly_chart(fig_bar_pekerjaan, use_container_width=True)
                     with col2:
-                        fig_pie_pekerjaan = px.pie(df_filtered_pekerjaan, values='jumlah', names='jenis_pekerjaan', title=f'Proporsi Penduduk Berdasarkan Pekerjaan Tahun {selected_tahun}' + (f' Semester {selected_semester}' if has_semester_col else ''), labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'})
+                        fig_pie_pekerjaan = px.pie(df_filtered_pekerjaan, values='jumlah', names='jenis_pekerjaan', title=f'Proporsi Penduduk Berdasarkan Pekerjaan Tahun {selected_tahun}' + (f' Semester {has_semester_col and selected_semester or ""}' if has_semester_col else ''), labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'})
                         fig_pie_pekerjaan.update_traces(textposition='inside', textinfo='percent+label')
                         st.plotly_chart(fig_pie_pekerjaan, use_container_width=True)
 
-                    st.markdown("---")
-                    st.markdown("### Jumlah Penduduk Berdasarkan Pekerjaan")
-                    df_sum_pekerjaan = df_filtered_pekerjaan.groupby('jenis_pekerjaan')['jumlah'].sum().reset_index()
-                    for index, row in df_sum_pekerjaan.iterrows():
-                        st.write(f"- {row['jenis_pekerjaan']}: {row['jumlah']:,.0f} jiwa")
                     st.markdown("---")
 
                     st.markdown("### Tren Jumlah Penduduk Berdasarkan Pekerjaan dari Tahun ke Tahun")
@@ -539,30 +574,36 @@ with tabs[4]:
                     st.markdown("#### Jumlah Penduduk Berdasarkan Golongan Darah")
                     df_sum_goldarah = df_filtered_goldarah.groupby('gol_drh')['jumlah'].sum().reset_index()
                     
-                    # Membuat kolom untuk setiap kartu
-                    cols = st.columns(len(df_sum_goldarah))
+                    # Menggunakan st.columns untuk membuat tata letak yang responsif
+                    num_cards = len(df_sum_goldarah)
+                    num_cols_per_row = 6  # Tampilkan 6 kolom per baris
                     
-                    # Mengisi setiap kolom dengan kartu
-                    for index, row in df_sum_goldarah.iterrows():
-                        with cols[index]:
-                            gol_darah_emoji = goldarah_emojis.get(row['gol_drh'].upper(), '❓')
-                            st.markdown(
-                                f"""
-                                <div style="
-                                    border-radius: 10px; 
-                                    padding: 20px; 
-                                    background-color: #f0f2f6; 
-                                    display: flex; 
-                                    flex-direction: column; 
-                                    align-items: center; 
-                                    text-align: center;">
-                                    <div style="font-size: 32px; color: #5A5A5A;">{gol_darah_emoji}</div>
-                                    <div style="font-size: 24px; font-weight: bold; color: #5A5A5A;">{row['jumlah']:,.0f}</div>
-                                    <div style="font-size: 14px; color: #5A5A5A;">{row['gol_drh']}</div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
+                    for i in range(0, num_cards, num_cols_per_row):
+                        cols = st.columns(num_cols_per_row, gap="small")
+                        for j in range(num_cols_per_row):
+                            if i + j < num_cards:
+                                row = df_sum_goldarah.iloc[i+j]
+                                with cols[j]:
+                                    gol_darah_emoji = goldarah_emojis.get(row['gol_drh'].upper(), '❓')
+                                    st.markdown(
+                                        f"""
+                                        <div style="
+                                            border-radius: 10px; 
+                                            padding: 20px; 
+                                            background-color: #f0f2f6; 
+                                            display: flex; 
+                                            flex-direction: column; 
+                                            align-items: center; 
+                                            text-align: center;
+                                            margin: 5px;">
+                                            <div style="font-size: 32px; color: #5A5A5A;">{gol_darah_emoji}</div>
+                                            <div style="font-size: 24px; font-weight: bold; color: #5A5A5A;">{row['jumlah']:,.0f}</div>
+                                            <div style="font-size: 14px; color: #5A5A5A;">{row['gol_drh']}</div>
+                                        </div>
+                                        """,
+                                        unsafe_allow_html=True
+                                    )
+                    
                     st.markdown("---")
 
                     col1, col2 = st.columns(2)
