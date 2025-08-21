@@ -28,7 +28,7 @@ def get_data_from_api(api_url):
 API_URLS = {
     "Agama": "https://satudata-api.garutkab.go.id/api/datasets/jumlah-penduduk-kabupaten-garut-berdasarkan-agama-4203/",
     "Pekerjaan": "https://satudata-api.garutkab.go.id/api/datasets/jumlah-penduduk-usia-produktif-kabupaten-garut-berdasarkan-pekerjaan-4489/",
-    "Perkawinan": "https://satudata-api.garutkab.go.id/api/datasets/jumlah-penduduk-kabupaten-garut-berdasarkan-status-kawin-4203/",
+    "Perkawinan": "https://satudata-api.garutkab.go.id/api/datasets/jumlah-penduduk-kabupaten-garut-berdasarkan-status-kawin-4489/",
     "Golongan Darah": "https://satudata-api.garutkab.go.id/api/datasets/jumlah-penduduk-kabupaten-garut-berdasarkan-golongan-darah-4167/",
 }
 
@@ -75,8 +75,11 @@ with tabs[0]:
     if df_agama is not None:
         try:
             # Periksa keberadaan kolom 'kecamatan' atau 'nama_kecamatan'
-            kecamatan_col = 'nama_kecamatan' if 'nama_kecamatan' in df_agama.columns else 'kecamatan'
-            required_cols = ['tahun', 'agama', 'jumlah', 'jenis_kelamin', 'semester', kecamatan_col]
+            kecamatan_col_agama = 'nama_kecamatan' if 'nama_kecamatan' in df_agama.columns else 'kecamatan'
+            has_kecamatan_col_agama = kecamatan_col_agama in df_agama.columns.tolist()
+            required_cols = ['tahun', 'agama', 'jumlah', 'jenis_kelamin', 'semester']
+            if has_kecamatan_col_agama:
+                required_cols.append(kecamatan_col_agama)
             
             if not all(col in df_agama.columns.tolist() for col in required_cols):
                 st.error("Kolom yang dibutuhkan untuk visualisasi Agama tidak ditemukan.")
@@ -156,10 +159,10 @@ with tabs[0]:
                     st.markdown("---")
                     
                     # Cek jika kolom 'kecamatan' tersedia sebelum membuat grafik
-                    if kecamatan_col in df_filtered_agama.columns.tolist():
+                    if has_kecamatan_col_agama:
                         st.markdown("### Sebaran Agama per Kecamatan")
-                        df_grouped_kecamatan_agama = df_filtered_agama.groupby([kecamatan_col, 'agama']).agg({'jumlah': 'sum'}).reset_index()
-                        fig_bar_kecamatan_agama = px.bar(df_grouped_kecamatan_agama, x=kecamatan_col, y='jumlah', color='agama', barmode='group', title=f'Sebaran Agama per Kecamatan Tahun {selected_tahun} Semester {selected_semester}', labels={kecamatan_col: 'Kecamatan', 'jumlah': 'Jumlah Penduduk (jiwa)', 'agama': 'Agama'})
+                        df_grouped_kecamatan_agama = df_filtered_agama.groupby([kecamatan_col_agama, 'agama']).agg({'jumlah': 'sum'}).reset_index()
+                        fig_bar_kecamatan_agama = px.bar(df_grouped_kecamatan_agama, x=kecamatan_col_agama, y='jumlah', color='agama', barmode='group', title=f'Sebaran Agama per Kecamatan Tahun {selected_tahun} Semester {selected_semester}', labels={kecamatan_col_agama: 'Kecamatan', 'jumlah': 'Jumlah Penduduk (jiwa)', 'agama': 'Agama'})
                         fig_bar_kecamatan_agama.update_layout(xaxis={'categoryorder':'total descending'}, yaxis_tickformat=".2s")
                         st.plotly_chart(fig_bar_kecamatan_agama, use_container_width=True)
                         st.markdown("---")
@@ -319,11 +322,13 @@ with tabs[2]:
     df_kawin = data_aggr.get("Perkawinan")
     if df_kawin is not None:
         try:
+            # Periksa keberadaan kolom 'kecamatan' atau 'nama_kecamatan'
+            kecamatan_col_kawin = 'nama_kecamatan' if 'nama_kecamatan' in df_kawin.columns else 'kecamatan'
+            has_kecamatan_col_kawin = kecamatan_col_kawin in df_kawin.columns.tolist()
             required_cols = ['tahun', 'status_kawin', 'jumlah', 'jenis_kelamin', 'semester']
+            if has_kecamatan_col_kawin:
+                required_cols.append(kecamatan_col_kawin)
             
-            # Cek apakah kolom 'kecamatan' ada di DataFrame
-            has_kecamatan_col = 'kecamatan' in df_kawin.columns.tolist()
-
             if not all(col in df_kawin.columns.tolist() for col in required_cols):
                 st.error("Kolom yang dibutuhkan untuk visualisasi Status Perkawinan tidak ditemukan.")
             else:
@@ -399,11 +404,10 @@ with tabs[2]:
 
                     st.markdown("---")
                     
-                    # Cek jika kolom 'kecamatan' tersedia sebelum membuat grafik
-                    if has_kecamatan_col:
+                    if has_kecamatan_col_kawin:
                         st.markdown("### Sebaran Status Perkawinan per Kecamatan")
-                        df_grouped_kecamatan_kawin = df_filtered_kawin.groupby(['kecamatan', 'status_kawin']).agg({'jumlah': 'sum'}).reset_index()
-                        fig_bar_kecamatan_kawin = px.bar(df_grouped_kecamatan_kawin, x='kecamatan', y='jumlah', color='status_kawin', barmode='group', title=f'Sebaran Status Perkawinan per Kecamatan Tahun {selected_tahun} Semester {selected_semester}', labels={'kecamatan': 'Kecamatan', 'jumlah': 'Jumlah Penduduk (jiwa)', 'status_kawin': 'Status Perkawinan'})
+                        df_grouped_kecamatan_kawin = df_filtered_kawin.groupby([kecamatan_col_kawin, 'status_kawin']).agg({'jumlah': 'sum'}).reset_index()
+                        fig_bar_kecamatan_kawin = px.bar(df_grouped_kecamatan_kawin, x=kecamatan_col_kawin, y='jumlah', color='status_kawin', barmode='group', title=f'Sebaran Status Perkawinan per Kecamatan Tahun {selected_tahun} Semester {selected_semester}', labels={kecamatan_col_kawin: 'Kecamatan', 'jumlah': 'Jumlah Penduduk (jiwa)', 'status_kawin': 'Status Perkawinan'})
                         fig_bar_kecamatan_kawin.update_layout(xaxis={'categoryorder':'total descending'}, yaxis_tickformat=".2s")
                         st.plotly_chart(fig_bar_kecamatan_kawin, use_container_width=True)
                         st.markdown("---")
@@ -429,10 +433,16 @@ with tabs[3]:
     df_pekerjaan = data_aggr.get("Pekerjaan")
     if df_pekerjaan is not None:
         try:
+            kecamatan_col_pekerjaan = 'nama_kecamatan' if 'nama_kecamatan' in df_pekerjaan.columns else 'kecamatan'
+            has_kecamatan_col_pekerjaan = kecamatan_col_pekerjaan in df_pekerjaan.columns.tolist()
             required_cols = ['tahun', 'jenis_pekerjaan', 'jumlah']
             
             # Cek apakah kolom 'semester' ada di DataFrame
             has_semester_col = 'semester' in df_pekerjaan.columns.tolist()
+            if has_semester_col:
+                required_cols.append('semester')
+            if has_kecamatan_col_pekerjaan:
+                required_cols.append(kecamatan_col_pekerjaan)
             
             if not all(col in df_pekerjaan.columns.tolist() for col in required_cols):
                 st.error("Kolom yang dibutuhkan untuk visualisasi Pekerjaan tidak ditemukan.")
@@ -440,7 +450,7 @@ with tabs[3]:
                 df_pekerjaan = df_pekerjaan.dropna(subset=required_cols)
                 df_pekerjaan['tahun'] = df_pekerjaan['tahun'].astype(int)
                 df_pekerjaan['jumlah'] = pd.to_numeric(df_pekerjaan['jumlah'])
-
+                
                 list_tahun = sorted(df_pekerjaan['tahun'].unique(), reverse=True)
                 selected_tahun = st.selectbox("Pilih Tahun:", list_tahun, key='tahun_pekerjaan')
 
@@ -504,14 +514,26 @@ with tabs[3]:
 
                     col1, col2 = st.columns(2)
                     with col1:
-                        fig_bar_pekerjaan = px.bar(df_filtered_pekerjaan, x='jenis_pekerjaan', y='jumlah', title=f'Jumlah Penduduk per Pekerjaan Tahun {selected_tahun}' + (f' Semester {has_semester_col and selected_semester or ""}' if has_semester_col else ''), labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'}, color='jenis_pekerjaan')
+                        fig_bar_pekerjaan = px.bar(df_filtered_pekerjaan, x='jenis_pekerjaan', y='jumlah', title=f'Jumlah Penduduk per Pekerjaan Tahun {selected_tahun}' + (f' Semester {selected_semester}' if has_semester_col else ''), labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'}, color='jenis_pekerjaan')
                         fig_bar_pekerjaan.update_layout(xaxis={'categoryorder':'total descending'}, yaxis_tickformat=".2s")
                         st.plotly_chart(fig_bar_pekerjaan, use_container_width=True)
                     with col2:
-                        fig_pie_pekerjaan = px.pie(df_filtered_pekerjaan, values='jumlah', names='jenis_pekerjaan', title=f'Proporsi Penduduk Berdasarkan Pekerjaan Tahun {selected_tahun}' + (f' Semester {has_semester_col and selected_semester or ""}' if has_semester_col else ''), labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'})
+                        fig_pie_pekerjaan = px.pie(df_filtered_pekerjaan, values='jumlah', names='jenis_pekerjaan', title=f'Proporsi Penduduk Berdasarkan Pekerjaan Tahun {selected_tahun}' + (f' Semester {selected_semester}' if has_semester_col else ''), labels={'jenis_pekerjaan': 'Pekerjaan', 'jumlah': 'Jumlah Penduduk (jiwa)'})
                         fig_pie_pekerjaan.update_traces(textposition='inside', textinfo='percent+label')
                         st.plotly_chart(fig_pie_pekerjaan, use_container_width=True)
 
+                    st.markdown("---")
+                    
+                    if has_kecamatan_col_pekerjaan:
+                        st.markdown("### Sebaran Pekerjaan per Kecamatan")
+                        df_grouped_kecamatan_pekerjaan = df_filtered_pekerjaan.groupby([kecamatan_col_pekerjaan, 'jenis_pekerjaan']).agg({'jumlah': 'sum'}).reset_index()
+                        fig_bar_kecamatan_pekerjaan = px.bar(df_grouped_kecamatan_pekerjaan, x=kecamatan_col_pekerjaan, y='jumlah', color='jenis_pekerjaan', barmode='group', title=f'Sebaran Pekerjaan per Kecamatan Tahun {selected_tahun}' + (f' Semester {selected_semester}' if has_semester_col else ''), labels={kecamatan_col_pekerjaan: 'Kecamatan', 'jumlah': 'Jumlah Penduduk (jiwa)', 'jenis_pekerjaan': 'Pekerjaan'})
+                        fig_bar_kecamatan_pekerjaan.update_layout(xaxis={'categoryorder':'total descending'}, yaxis_tickformat=".2s")
+                        st.plotly_chart(fig_bar_kecamatan_pekerjaan, use_container_width=True)
+                        st.markdown("---")
+                    else:
+                        st.info("Data kecamatan tidak tersedia untuk visualisasi ini.")
+                    
                     st.markdown("---")
 
                     st.markdown("### Tren Jumlah Penduduk Berdasarkan Pekerjaan dari Tahun ke Tahun")
@@ -533,7 +555,13 @@ with tabs[4]:
     df_goldarah = data_aggr.get("Golongan Darah")
     if df_goldarah is not None:
         try:
+            # Periksa keberadaan kolom 'kecamatan' atau 'nama_kecamatan'
+            kecamatan_col_goldarah = 'nama_kecamatan' if 'nama_kecamatan' in df_goldarah.columns else 'kecamatan'
+            has_kecamatan_col_goldarah = kecamatan_col_goldarah in df_goldarah.columns.tolist()
             required_cols = ['tahun', 'gol_drh', 'jumlah', 'jenis_kelamin', 'semester']
+            if has_kecamatan_col_goldarah:
+                required_cols.append(kecamatan_col_goldarah)
+            
             if not all(col in df_goldarah.columns.tolist() for col in required_cols):
                 st.error("Kolom yang dibutuhkan untuk visualisasi Golongan Darah tidak ditemukan.")
             else:
@@ -617,6 +645,17 @@ with tabs[4]:
                         st.plotly_chart(fig_pie_gol_darah, use_container_width=True)
 
                     st.markdown("---")
+
+                    if has_kecamatan_col_goldarah:
+                        st.markdown("### Sebaran Golongan Darah per Kecamatan")
+                        df_grouped_kecamatan_goldarah = df_filtered_goldarah.groupby([kecamatan_col_goldarah, 'gol_drh']).agg({'jumlah': 'sum'}).reset_index()
+                        fig_bar_kecamatan_goldarah = px.bar(df_grouped_kecamatan_goldarah, x=kecamatan_col_goldarah, y='jumlah', color='gol_drh', barmode='group', title=f'Sebaran Golongan Darah per Kecamatan Tahun {selected_tahun} Semester {selected_semester}', labels={kecamatan_col_goldarah: 'Kecamatan', 'jumlah': 'Jumlah Penduduk (jiwa)', 'gol_drh': 'Golongan Darah'})
+                        fig_bar_kecamatan_goldarah.update_layout(xaxis={'categoryorder':'total descending'}, yaxis_tickformat=".2s")
+                        st.plotly_chart(fig_bar_kecamatan_goldarah, use_container_width=True)
+                        st.markdown("---")
+                    else:
+                        st.info("Data kecamatan tidak tersedia untuk visualisasi ini.")
+
                     st.markdown("### Tren Jumlah Penduduk Berdasarkan Golongan Darah dari Tahun ke Tahun")
                     df_grouped_gol_darah = df_goldarah.groupby(['tahun', 'gol_drh']).agg({'jumlah': 'sum'}).reset_index()
                     fig_line_gol_darah = px.line(df_grouped_gol_darah, x='tahun', y='jumlah', color='gol_drh', markers=True, title='Tren Jumlah Penduduk Berdasarkan Golongan Darah', labels={'tahun': 'Tahun', 'jumlah': 'Jumlah Penduduk (jiwa)', 'gol_drh': 'Golongan Darah'})
